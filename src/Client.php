@@ -2,33 +2,150 @@
 
 namespace Itk\EventDatabaseClient;
 
+use GuzzleHttp\Client as GuzzleHttpClient;
 use Itk\EventDatabaseClient\Item\Event;
 use Lcobucci\JWT\Parser;
 
 class Client {
   protected $url;
-  protected $apiUrl;
   protected $username;
   protected $password;
 
+  /**
+   * Client constructor.
+   *
+   * @param $url The API url.
+   * @param $username The API username.
+   * @param $password The API password.
+   */
+  public function __construct($url, $username, $password) {
+    $this->url = rtrim($url, '/') . '/';
+    $this->username = $username;
+    $this->password = $password;
+  }
+
+  /**
+   * Get all events.
+   */
+  public function getEvents(array $query = null) {
+    $this->checkToken();
+
+    $url =  'events';
+    if ($query) {
+      $url .= '?' . http_build_query($query);
+    }
+
+    $res = $this->request('GET', $url);
+    $json = json_decode($res->getBody(), true);
+    $collection = new Collection($json, Event::class);
+
+    return $collection;
+  }
+
+  public function createEvent(array $data) {
+    $res = $this->request('POST', 'events', [
+      'json' => $data,
+    ]);
+
+    if ($res->getStatusCode() == 201) {
+      $data = json_decode($res->getBody(), true);
+      return new Event($data);
+    }
+
+    return null;
+  }
+
+  public function readEvent($event) {
+    if (is_numeric($event)) {
+      $url = 'events/' . $event;
+    } elseif (is_string($event)) {
+      $url = $event;
+    } else {
+      $url = $event->{'@id'};
+    }
+
+    $res = $this->request('GET', $url);
+
+    if ($res->getStatusCode() == 200) {
+      $data = json_decode($res->getBody(), true);
+      return new Event($data);
+    }
+
+    return null;
+  }
+
+  public function updateEvent($event, array $data) {
+    if (is_string($event) || is_numeric($event)) {
+      $event = $this->readEvent($event);
+    }
+
+    if ($event) {
+      $url = $event->{'@id'};
+      $eventData = [];
+      foreach ($event as $name => $value) {
+        if (!preg_match('/^@/', $name)) {
+          $eventData[$name] = $value;
+        }
+      }
+
+      $res = $this->request('PUT', $url, [
+        'json' => $data + $eventData,
+      ]);
+
+      return $res->getStatusCode() == 200;
+    }
+
+    return false;
+  }
+
+  public function deleteEvent($event) {
+    $this->checkToken();
+
+    if (is_string($event) || is_numeric($event)) {
+      $event = $this->readEvent($event);
+    }
+    if ($event) {
+      $url = $event->{'@id'};
+      $res = $this->request('DELETE', $url);
+
+      return $res->getStatusCode() == 204;
+    }
+
+    return false;
+  }
+
+	private function request($method, $url, array $data = []) {
+    $this->checkToken();
+
+    if ($this->token) {
+      $data['headers'] = ['Authorization' => 'Bearer ' . $this->token];
+    }
+
+    return $this->doRequest($method, $url, $data);
+	}
+
+  private function doRequest($method, $url, array $data) {
+    $client = new GuzzleHttpClient([
+      'base_uri' => $this->url,
+    ]);
+    $res = $client->request($method, $url, $data);
+
+    return $res;
+  }
+
   private function renewToken() {
-    $url = $this->apiUrl . '/login_check';
-
-    $client = new \GuzzleHttp\Client();
-    $res = $client->request('POST', $url, [
-             'form_params' => [
-               '_username' => $this->username,
-               '_password' => $this->password,
-             ],
-           ]);
-
+    $res = $this->doRequest('POST', 'login_check', [
+      'form_params' => [
+        '_username' => $this->username,
+        '_password' => $this->password,
+      ],
+    ]);
     $this->token = json_decode($res->getBody())->token;
-
     $this->writeToken();
   }
 
   private function getTokenFile() {
-    $filename = md5($this->apiUrl . '|' . $this->username) . '.apitoken';
+    $filename = md5($this->url . '|' . $this->username . '|' . $this->password) . '.apitoken';
     return sys_get_temp_dir() . '/' . $filename;
   }
 
@@ -51,7 +168,8 @@ class Client {
       try {
         $timestamp = $token->getClaim('exp');
         $expirationTime->setTimestamp($timestamp);
-      } catch (\Exception $e) {}
+      } catch (\Exception $e) {
+      }
 
       $renew = $expirationTime < new \DateTime();
     }
@@ -59,130 +177,5 @@ class Client {
     if ($renew) {
       $this->renewToken();
     }
-  }
-
-  public function __construct($url, $username, $password) {
-    $this->url = $url;
-    $this->apiUrl = rtrim($this->url, '/') . '/api';
-    $this->username = $username;
-    $this->password = $password;
-  }
-
-  public function getEvents(array $query = null) {
-    $this->checkToken();
-
-    $url = $this->apiUrl . '/events';
-    if ($query) {
-      $url .= '?' . http_build_query($query);
-    }
-
-    $client = new \GuzzleHttp\Client();
-    $res = $client->request('GET', $url, [
-             'headers' => [
-               'Authorization' => 'Bearer ' . $this->token,
-             ],
-           ]);
-
-    $json = json_decode($res->getBody(), true);
-    $collection = new Collection($json, Event::class);
-
-    return $collection;
-  }
-
-  public function getEvent($id) {
-    $this->checkToken();
-
-    $url = $this->apiUrl . '/events/' . $id;
-
-    try {
-      $client = new \GuzzleHttp\Client();
-      $res = $client->request('GET', $url, [
-               'headers' => [
-                 'Authorization' => 'Bearer ' . $this->token,
-               ],
-             ]);
-
-      $json = json_decode($res->getBody(), true);
-      $event = new Event($json);
-
-      return $event;
-    } catch (\GuzzleHttp\Exception\ClientException $e) {
-      throw $e;
-    }
-
-    return null;
-  }
-
-  public function createEvent(array $data) {
-    $this->checkToken();
-
-    $url = $this->apiUrl . '/events';
-
-    $client = new \GuzzleHttp\Client();
-    $res = $client->request('POST', $url, [
-             'headers' => [
-               'Authorization' => 'Bearer ' . $this->token,
-             ],
-             'json' => $data,
-           ]);
-
-    if ($res->getStatusCode() == 201) {
-      return $this->parseEvent($res->getBody());
-    }
-
-    return null;
-  }
-
-  private function parseEvent($json) {
-    return json_decode($json);
-  }
-
-  public function updateEvent($event, array $data) {
-    if (is_string($event) || is_numeric($event)) {
-      $event = $this->getEvent($event);
-    }
-
-    if ($event) {
-      $url = $this->url . $event->{'@id'};
-
-      $eventData = [];
-      foreach ($event as $name => $value) {
-        if (!preg_match('/^@/', $name)) {
-          $eventData[$name] = $value;
-        }
-      }
-
-      $client = new \GuzzleHttp\Client();
-      $res = $client->request('PUT', $url, [
-               'headers' => [
-                 'Authorization' => 'Bearer ' . $this->token,
-               ],
-               'json' => $data + $eventData,
-             ]);
-
-      return $res->getStatusCode() == 200;
-    }
-
-    return false;
-  }
-
-  public function deleteEvent($event) {
-    if (is_string($event) || is_numeric($event)) {
-      $event = $this->getEvent($event);
-    }
-    if ($event) {
-      $url = $this->url . $event->{'@id'};
-
-      $client = new \GuzzleHttp\Client();
-      $res = $client->request('DELETE', $url, [
-               'headers' => [
-                 'Authorization' => 'Bearer ' . $this->token,
-               ],
-             ]);
-
-      return $res->getStatusCode() == 204;
-    }
-
-    return false;
   }
 }
