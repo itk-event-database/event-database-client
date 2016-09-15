@@ -17,7 +17,7 @@ class Event extends Item {
   }
 
   public function __toString() {
-    return $this->getName();
+    return $this->getName() ?: __CLASS__;
   }
 
   public function getName() {

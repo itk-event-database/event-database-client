@@ -3,7 +3,11 @@
 namespace Itk\EventDatabaseClient;
 
 use GuzzleHttp\Client as GuzzleHttpClient;
+use GuzzleHttp\Exception\ClientException as GuzzleClientException;
+use Itk\EventDatabaseClient\Exception\ClientException;
 use Itk\EventDatabaseClient\Item\Event;
+use Itk\EventDatabaseClient\Item\Occurrence;
+use Itk\EventDatabaseClient\Item\Place;
 use Lcobucci\JWT\Parser;
 
 class Client {
@@ -25,16 +29,16 @@ class Client {
   }
 
   /**
-   * Get all events.
+   * Get all events by an optional query.
+   *
+   * @param array $query
+   *   The event query.
+   *
+   * @return Collection
+   *   A event collection.
    */
   public function getEvents(array $query = null) {
-    $this->checkToken();
-
-    $url =  'events';
-    if ($query) {
-      $url .= '?' . http_build_query($query);
-    }
-
+    $url = $this->getUrl('events', $query);
     $res = $this->request('GET', $url);
     $json = json_decode($res->getBody(), true);
     $collection = new Collection($json, Event::class);
@@ -42,10 +46,19 @@ class Client {
     return $collection;
   }
 
+  /**
+   * Create an event.
+   *
+   * @param array $data
+   *   The event data.
+   *
+   * @return \Itk\EventDatabaseClient\Item\Event|null
+   *   The event if successfully created. Otherwise null.
+   */
   public function createEvent(array $data) {
     $res = $this->request('POST', 'events', [
-      'json' => $data,
-    ]);
+             'json' => $data,
+           ]);
 
     if ($res->getStatusCode() == 201) {
       $data = json_decode($res->getBody(), true);
@@ -55,6 +68,16 @@ class Client {
     return null;
   }
 
+  /**
+   * Read an event.
+   *
+   * The $event parameter can be a numeric event id, an API @id (e.g. /api/events/87) og an object with an '@id' property.
+   *
+   * @param mixed $event
+   *   The event or an event id.
+   * @return \Itk\EventDatabaseClient\Item\Event|null
+   *   The event if it exists. Otherwise null.
+   */
   public function readEvent($event) {
     if (is_numeric($event)) {
       $url = 'events/' . $event;
@@ -74,10 +97,21 @@ class Client {
     return null;
   }
 
+  /**
+   * Update an event.
+   *
+   * @see readEvent for details on the $event parameter.
+   *
+   * @param mixed $event
+   *   The event or an event id.
+   * @param array $data
+   *   The data to update on the event.
+   *
+   * @return bool
+   *   Whether the event was successfully updated.
+   */
   public function updateEvent($event, array $data) {
-    if (is_string($event) || is_numeric($event)) {
-      $event = $this->readEvent($event);
-    }
+    $event = $this->readEvent($event);
 
     if ($event) {
       $url = $event->{'@id'};
@@ -89,8 +123,8 @@ class Client {
       }
 
       $res = $this->request('PUT', $url, [
-        'json' => $data + $eventData,
-      ]);
+               'json' => $data + $eventData,
+             ]);
 
       return $res->getStatusCode() == 200;
     }
@@ -98,12 +132,17 @@ class Client {
     return false;
   }
 
+  /**
+   * Delete an event.
+   *
+   * @param $event
+   *   The event or an event id.
+   * @return bool
+   *   Whether the event was succesfully deleted.
+   */
   public function deleteEvent($event) {
-    $this->checkToken();
+    $event = $this->readEvent($event);
 
-    if (is_string($event) || is_numeric($event)) {
-      $event = $this->readEvent($event);
-    }
     if ($event) {
       $url = $event->{'@id'};
       $res = $this->request('DELETE', $url);
@@ -114,7 +153,158 @@ class Client {
     return false;
   }
 
-	private function request($method, $url, array $data = []) {
+  /**
+   * Get all occurrences by an optional query.
+   *
+   * @param array $query
+   *   The occurrence query.
+   *
+   * @return Collection
+   *   A occurrence collection.
+   */
+  public function getOccurrences(array $query = null) {
+    $url = $this->getUrl('occurrences', $query);
+    $res = $this->request('GET', $url);
+    $json = json_decode($res->getBody(), true);
+    $collection = new Collection($json, Occurrence::class);
+
+    return $collection;
+  }
+
+  /**
+   * Get all places by an optional query.
+   *
+   * @param array $query
+   *   The place query.
+   *
+   * @return Collection
+   *   A place collection.
+   */
+  public function getPlaces(array $query = null) {
+    $url = $this->getUrl('places', $query);
+    $res = $this->request('GET', $url);
+    $json = json_decode($res->getBody(), true);
+    $collection = new Collection($json, Place::class);
+
+    return $collection;
+  }
+
+  /**
+   * Create an place.
+   *
+   * @param array $data
+   *   The place data.
+   *
+   * @return \Itk\PlaceDatabaseClient\Item\Place|null
+   *   The place if successfully created. Otherwise null.
+   */
+  public function createPlace(array $data) {
+    $res = $this->request('POST', 'places', [
+             'json' => $data,
+           ]);
+
+    if ($res->getStatusCode() == 201) {
+      $data = json_decode($res->getBody(), true);
+      return new Place($data);
+    }
+
+    return null;
+  }
+
+  /**
+   * Read an place.
+   *
+   * The $place parameter can be a numeric place id, an API @id (e.g. /api/places/87) og an object with an '@id' property.
+   *
+   * @param mixed $place
+   *   The place or an place id.
+   * @return \Itk\PlaceDatabaseClient\Item\Place|null
+   *   The place if it exists. Otherwise null.
+   */
+  public function readPlace($place) {
+    if (is_numeric($place)) {
+      $url = 'places/' . $place;
+    } elseif (is_string($place)) {
+      $url = $place;
+    } else {
+      $url = $place->{'@id'};
+    }
+
+    $res = $this->request('GET', $url);
+
+    if ($res->getStatusCode() == 200) {
+      $data = json_decode($res->getBody(), true);
+      return new Place($data);
+    }
+
+    return null;
+  }
+
+  /**
+   * Update an place.
+   *
+   * @see readPlace for details on the $place parameter.
+   *
+   * @param mixed $place
+   *   The place or an place id.
+   * @param array $data
+   *   The data to update on the place.
+   *
+   * @return bool
+   *   Whether the place was successfully updated.
+   */
+  public function updatePlace($place, array $data) {
+    $place = $this->readPlace($place);
+
+    if ($place) {
+      $url = $place->{'@id'};
+      $placeData = [];
+      foreach ($place as $name => $value) {
+        if (!preg_match('/^@/', $name)) {
+          $placeData[$name] = $value;
+        }
+      }
+
+      $res = $this->request('PUT', $url, [
+               'json' => $data + $placeData,
+             ]);
+
+      return $res->getStatusCode() == 200;
+    }
+
+    return false;
+  }
+
+  /**
+   * Delete an place.
+   *
+   * @param $place
+   *   The place or an place id.
+   * @return bool
+   *   Whether the place was succesfully deleted.
+   */
+  public function deletePlace($place) {
+    $place = $this->readPlace($place);
+
+    if ($place) {
+      $url = $place->{'@id'};
+      $res = $this->request('DELETE', $url);
+
+      return $res->getStatusCode() == 204;
+    }
+
+    return false;
+  }
+
+  private function getUrl($url, array $query = null) {
+    if ($query) {
+      $url .= '?' . http_build_query($query);
+    }
+
+    return $url;
+  }
+
+  private function request($method, $url, array $data = []) {
     $this->checkToken();
 
     if ($this->token) {
@@ -122,25 +312,33 @@ class Client {
     }
 
     return $this->doRequest($method, $url, $data);
-	}
+  }
 
   private function doRequest($method, $url, array $data) {
-    $client = new GuzzleHttpClient([
-      'base_uri' => $this->url,
-    ]);
-    $res = $client->request($method, $url, $data);
+    try {
+      $client = new GuzzleHttpClient([
+                  'base_uri' => $this->url,
+                ]);
+      $res = $client->request($method, $url, $data);
 
-    return $res;
+      return $res;
+    } catch (GuzzleClientException $e) {
+      throw new ClientException($e->getMessage(), $e->getCode(), $e);
+    }
   }
 
   private function renewToken() {
     $res = $this->doRequest('POST', 'login_check', [
-      'form_params' => [
-        '_username' => $this->username,
-        '_password' => $this->password,
-      ],
-    ]);
-    $this->token = json_decode($res->getBody())->token;
+             'form_params' => [
+               '_username' => $this->username,
+               '_password' => $this->password,
+             ],
+           ]);
+    $data = $res->getStatusCode() === 200 ? json_decode($res->getBody()) : null;
+    if (!$data) {
+      throw new ClientException('Cannot renew token', 401);
+    }
+    $this->token = $data->token;
     $this->writeToken();
   }
 

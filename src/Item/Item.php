@@ -9,8 +9,26 @@ abstract class Item {
     $this->data = $data;
 
     $this->data['id'] = $this->data['@id'];
+    if (preg_match('/(\d+)$/', $this->data['@id'], $matches)) {
+      $this->data['itemId'] = $matches[1];
+    }
   }
 
+  /**
+   * Get the item id.
+   *
+   * @return int
+   */
+  public function getItemId() {
+    return $this->get('itemId') ?: 0;
+  }
+
+  /**
+   * Get a value from the item data.
+   *
+   * @param null $key
+   * @return array|mixed|null
+   */
   public function get($key = null) {
     return $key ? (isset($this->data[$key]) ? $this->data[$key] : null) : $this->data;
   }
