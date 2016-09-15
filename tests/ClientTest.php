@@ -59,6 +59,24 @@ class ClientTest extends TestCase {
     $this->assertEquals($numberOfEvents, count($events));
   }
 
+  public function testCanGetEventsByQuery() {
+    $client = $this->getClient();
+
+    $name = uniqid(__FUNCTION__);
+
+    $collection = $client->getEvents(['name' => $name]);
+    $this->assertNotNull($collection);
+    $this->assertEquals(0, $collection->getCount());
+
+    $event = $client->createEvent([
+               'name' => $name,
+             ]);
+
+    $collection = $client->getEvents(['name' => $name]);
+    $this->assertNotNull($collection);
+    $this->assertEquals(1, $collection->getCount());
+  }
+
   public function testCanGetOccurrences() {
     $client = $this->getClient();
 
