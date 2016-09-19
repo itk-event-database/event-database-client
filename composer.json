@@ -1,5 +1,5 @@
 {
-    "name": "itk-event-database/event-database-client",
+    "name": "itk/event-database-client",
     "description": "Event Database client",
     "type": "library",
     "authors": [
