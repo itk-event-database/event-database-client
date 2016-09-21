@@ -2,6 +2,7 @@
     "name": "itk-event-database/event-database-client",
     "description": "Event Database client",
     "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "Mikkel Ricky",
