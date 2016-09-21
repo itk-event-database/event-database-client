@@ -27,20 +27,28 @@ class Collection {
     return count($this->items);
   }
 
+  public function get($key) {
+    switch ($key) {
+      case 'first':
+      case 'next':
+      case 'previous':
+      case 'last':
+        $hydraKey = 'hydra:' . $key;
+        return isset($this->data['hydra:view'][$hydraKey]) ? $this->data['hydra:view'][$hydraKey] : null;
+      case 'totalItems':
+        $hydraKey = 'hydra:' . $key;
+        return isset($this->data[$hydraKey]) ? $this->data[$hydraKey] : null;
+    }
+
+    throw new \Exception('No such value: ' . $key);
+  }
+
   public function __call($name, array $arguments) {
     if (preg_match('/^get(?<name>.+)/', $name, $matches)) {
       $key = lcfirst($matches['name']);
-      switch ($key) {
-        case 'first':
-        case 'next':
-        case 'previous':
-        case 'last':
-          $hydraKey = 'hydra:' . $key;
-          return isset($this->data['hydra:view'][$hydraKey]) ? $this->data['hydra:view'][$hydraKey] : null;
-        case 'totalItems':
-          $hydraKey = 'hydra:' . $key;
-          return isset($this->data[$hydraKey]) ? $this->data[$hydraKey] : null;
-      }
+      try {
+        return $this->get($key);
+      } catch (\Exception $e) {}
     }
 
     throw new \Exception('Call to undefined method ' . get_class($this) . '::' . $name . '()');
