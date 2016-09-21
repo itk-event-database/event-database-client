@@ -361,15 +361,15 @@ class Client {
     if (!$this->token) {
       $renew = true;
     } else {
-      $token = (new Parser())->parse((string)$this->token);
-      $expirationTime = new \DateTime();
       try {
+        $token = (new Parser())->parse((string)$this->token);
+        $expirationTime = new \DateTime();
         $timestamp = $token->getClaim('exp');
         $expirationTime->setTimestamp($timestamp);
+        $renew = $expirationTime < new \DateTime();
       } catch (\Exception $e) {
+        $renew = true;
       }
-
-      $renew = $expirationTime < new \DateTime();
     }
 
     if ($renew) {

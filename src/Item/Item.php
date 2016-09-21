@@ -24,6 +24,19 @@ abstract class Item {
   }
 
   /**
+   * Set a value from in item data.
+   *
+   * @param string $key
+   * @param mixed $value
+   * @return Item
+   */
+  public function set($key, $value) {
+    $this->data[$key] = $value;
+
+    return $this;
+  }
+
+  /**
    * Get a value from the item data.
    *
    * @param null $key
