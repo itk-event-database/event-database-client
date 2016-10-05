@@ -14,6 +14,7 @@ class Client {
   protected $url;
   protected $username;
   protected $password;
+  protected $token;
 
   /**
    * Client constructor.
@@ -356,6 +357,10 @@ class Client {
   }
 
   private function checkToken() {
+    if (!$this->username) {
+      $this->token = null;
+      return;
+    }
     $renew = false;
     $this->readToken();
     if (!$this->token) {
