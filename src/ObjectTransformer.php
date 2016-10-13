@@ -64,10 +64,10 @@ class ObjectTransformer
                     }
                 }
             }
+        }
 
-            if (isset($configuration['defaults'])) {
-                $this->setDefaults($data, $configuration['defaults']);
-            }
+        if (isset($configuration['defaults'])) {
+            $this->setDefaults($data, $configuration['defaults']);
         }
 
         return $data;
