@@ -65,6 +65,20 @@ class ObjectTransformerTest extends TestCase
             ],
 
             [
+                [
+                    'title' => 'Title',
+                ],
+                [
+                    'defaults' => [
+                        'name' => 'Title',
+                    ],
+                ],
+                [
+                    'name' => 'Title',
+                ],
+            ],
+
+            [
                 // Item
                 [
                     'title' => 'Title',
