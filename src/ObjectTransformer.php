@@ -20,35 +20,44 @@ class ObjectTransformer
         return $data;
     }
 
-    protected function getData($item, array $config)
+    protected function getData($item, array $configuration)
     {
         $data = [];
 
-        if (isset($config['mapping'])) {
-            $mapping = $config['mapping'];
+        if (isset($configuration['mapping'])) {
+            $mapping = $configuration['mapping'];
 
             foreach ($mapping as $key => $spec) {
                 if (!is_array($spec)) {
                     $path = $spec;
-                    $value = $this->getItemValue($item, $path);
+                    $value = $this->getValue($item, $path);
                     if ($value !== null) {
                         $data[$key] = $this->convertValue($value, $key);
                     }
                 } elseif (isset($spec['mapping'])) {
-                    $path = isset($spec['path']) ? $spec['path'] : '.';
-                    $items = ($path === '.') ? [$item] : $this->getItemValue($item, $path);
-                    if ($items) {
-                        $data[$key] = array_map(function ($item) use ($spec) {
-                            return $this->getData($item, $spec);
-                        }, $items);
+                    $type = isset($spec['type']) ? $spec['type'] : 'list';
+                    $path = isset($spec['path']) ? $spec['path'] : null;
+                    if ($type === 'object') {
+                        $item = $path ? $this->getValue($item, $path) : $item;
+                        $data[$key] = $this->getData($item, $spec);
+                    } else {
+                        $items = $path ? $this->getValue($item, $path) : [$item];
+                        if ($items) {
+                            if ($type === 'object') {
+                                $data[$key] = $this->getData($items, $spec);
+                            } else {
+                                $data[$key] = array_map(function ($item) use ($spec) {
+                                    return $this->getData($item, $spec);
+                                }, $items);
+                            }
+                        }
                     }
                 } elseif (isset($spec['path'])) {
                     $path = $spec['path'];
-                    $value = $this->getItemValue($item, $path);
+                    $value = $this->getValue($item, $path);
                     if ($value !== null) {
                         if (isset($spec['split'])) {
-                            $pattern = '/\s*' . preg_quote($spec['split'], '/') . '\s*/';
-                            $data[$key] = preg_split($pattern, $value, null, PREG_SPLIT_NO_EMPTY);
+                            $data[$key] = preg_split('/\s*' . preg_quote($spec['split'], '/') . '\s*/', $value, null, PREG_SPLIT_NO_EMPTY);
                         } else {
                             $data[$key] = $this->convertValue($value, $key);
                         }
@@ -56,15 +65,15 @@ class ObjectTransformer
                 }
             }
 
-            if (isset($config['defaults'])) {
-                $this->setDefaults($data, $config['defaults']);
+            if (isset($configuration['defaults'])) {
+                $this->setDefaults($data, $configuration['defaults']);
             }
         }
 
         return $data;
     }
 
-    protected function getItemValue($item, $path)
+    protected function getValue($item, $path)
     {
         return $this->valueHandler ? $this->valueHandler->getValue($item, $path) : null;
     }
