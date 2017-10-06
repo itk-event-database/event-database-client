@@ -48,7 +48,7 @@ abstract class Item
      */
     public function get($key = null)
     {
-        return $key ? (isset($this->data[$key]) ? $this->data[$key] : null) : $this->data;
+        return $key !== null ? (isset($this->data[$key]) ? $this->data[$key] : null) : $this->data;
     }
 
     public function __set($name, $value)

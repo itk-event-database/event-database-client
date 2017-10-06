@@ -5,6 +5,7 @@ namespace Itk\EventDatabaseClient\Item;
 class Occurrence extends Item
 {
     protected $place;
+    protected $event;
 
     public function __construct(array $data)
     {
@@ -12,6 +13,9 @@ class Occurrence extends Item
 
         if ($this->get('place')) {
             $this->place = new Place($this->get('place'));
+        }
+        if (is_array($this->get('event'))) {
+            $this->event = new Event($this->get('event'));
         }
     }
 
@@ -21,6 +25,11 @@ class Occurrence extends Item
         $s .= '–';
         $s .= $this->getEndDate() ?: '';
         return $s;
+    }
+
+    public function getTicketPriceRange()
+    {
+        return $this->get('ticketPriceRange');
     }
 
     public function getStartDate()
@@ -36,5 +45,10 @@ class Occurrence extends Item
     public function getPlace()
     {
         return $this->place;
+    }
+
+    public function getEvent()
+    {
+        return $this->event;
     }
 }

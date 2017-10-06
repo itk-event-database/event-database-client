@@ -105,6 +105,37 @@ class Client
     }
 
     /**
+     * Read an occurrence.
+     *
+     * The $occurrence parameter can be a numeric occurrence id, an API @id (e.g. /api/occurrences/89)
+     * or an object with an '@id' property.
+     *
+     * @param mixed $occurrence
+     *   The occurrence or an occurrence id.
+     * @return \Itk\EventDatabaseClient\Item\Occurrence|null
+     *   The occurrence if it exists. Otherwise null.
+     */
+    public function readOccurrence($occurrence)
+    {
+        if (is_numeric($occurrence)) {
+            $url = 'occurrences/' . $occurrence;
+        } elseif (is_string($occurrence)) {
+            $url = $occurrence;
+        } else {
+            $url = $occurrence->{'@id'};
+        }
+
+        $res = $this->request('GET', $url);
+
+        if ($res->getStatusCode() == 200) {
+            $data = json_decode($res->getBody(), true);
+            return new Occurrence($data);
+        }
+
+        return null;
+    }
+
+    /**
      * Update an event.
      *
      * @see readEvent for details on the $event parameter.
