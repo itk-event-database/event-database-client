@@ -174,6 +174,7 @@ class Client
      */
     public function updateEvent($event, array $data)
     {
+        $data = $this->linkId($data);
         $event = $this->readEvent($event);
 
         if ($event) {
@@ -386,7 +387,7 @@ class Client
             ];
         }
 
-        if($method === 'POST') {
+        if($method === 'POST' || $method === 'PUT') {
             $data['headers']['Content-Type'] = 'application/ld+json';
             $data['headers']['Accept'] = 'application/ld+json';
         }
