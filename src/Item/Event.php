@@ -173,4 +173,13 @@ class Event extends Item
         return $this->get('langcode');
     }
 
+    /**
+     * The author id.
+     *
+     * @return array|mixed|null
+     */
+    public function getCreatedBy()
+    {
+        return $this->get('createdBy');
+    }
 }
