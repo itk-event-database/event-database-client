@@ -114,5 +114,4 @@ class Place extends Item
     {
         return $this->get('langcode');
     }
-
 }

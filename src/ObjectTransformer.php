@@ -70,6 +70,8 @@ class ObjectTransformer
             $this->setDefaults($data, $configuration['defaults']);
         }
 
+        $this->normalize($data);
+
         return $data;
     }
 
@@ -80,7 +82,41 @@ class ObjectTransformer
 
     protected function convertValue($value, $key)
     {
-        return $this->valueHandler ? $this->valueHandler->convertValue($value, $key) : $value;
+        $data = null;
+
+        if(is_array($value)) {
+            $data = [];
+            foreach ($value as $k => $v) {
+                if(is_int($k)) {
+                    if(is_array($v)) {
+                        $data[$k] = $this->valueHandler ? $this->convertValue($v, $key) : $v;
+                    } else {
+                        $data[$k] = $this->valueHandler ? $this->valueHandler->convertValue($v, $key) : $v;
+                    }
+                } else {
+                    $data[$k] = $this->valueHandler ? $this->valueHandler->convertValue($v, $k) : $v;
+                }
+            }
+        } else {
+            $data = $this->valueHandler ? $this->valueHandler->convertValue($value, $key) : $value;
+        }
+
+        return $data;
+    }
+
+    protected function normalize(array &$data)
+    {
+        if(isset($data['ticketPriceRange'])) {
+            $ticketPriceRange = $data['ticketPriceRange'];
+            unset($data['ticketPriceRange']);
+
+            if(0 < count($data['occurrences'])) {
+                foreach ($data['occurrences'] as &$occurrence) {
+                    $occurrence['ticketPriceRange'] = $ticketPriceRange;
+                }
+            }
+
+        }
     }
 
     protected function setDefaults(array &$data, array $defaults)

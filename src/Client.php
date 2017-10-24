@@ -61,9 +61,11 @@ class Client
      */
     public function createEvent(array $data)
     {
+        $eventData = $this->linkId($data);
+
         $res = $this->request('POST', 'events', [
-                   'json' => $data,
-               ]);
+            'json' => $eventData,
+        ]);
 
         if ($res->getStatusCode() == 201) {
             $data = json_decode($res->getBody(), true);
@@ -71,6 +73,28 @@ class Client
         }
 
         return null;
+    }
+
+    /**
+     * Recursively 'link' data by converting 'id' keys to '@id' for JSON-LD compliance
+     *
+     * @param $data
+     *
+     * @return array
+     */
+    private function linkId($data) {
+        $linkedData = [];
+        foreach ($data as $name => $value) {
+            if ($name === 'id') {
+                $linkedData['@id'] = $value;
+            } elseif (is_array($value)) {
+                $linkedData[$name] = $this->linkId($value);
+            } else {
+                $linkedData[$name] = $value;
+            }
+        }
+
+        return $linkedData;
     }
 
     /**
@@ -150,6 +174,7 @@ class Client
      */
     public function updateEvent($event, array $data)
     {
+        $data = $this->linkId($data);
         $event = $this->readEvent($event);
 
         if ($event) {
@@ -243,8 +268,8 @@ class Client
     public function createPlace(array $data)
     {
         $res = $this->request('POST', 'places', [
-                   'json' => $data,
-               ]);
+            'json' => $data,
+        ]);
 
         if ($res->getStatusCode() == 201) {
             $data = json_decode($res->getBody(), true);
@@ -357,7 +382,14 @@ class Client
         $this->checkToken();
 
         if ($this->token) {
-            $data['headers'] = ['Authorization' => 'Bearer ' . $this->token];
+            $data['headers'] = [
+                'Authorization' => 'Bearer ' . $this->token,
+            ];
+        }
+
+        if($method === 'POST' || $method === 'PUT') {
+            $data['headers']['Content-Type'] = 'application/ld+json';
+            $data['headers']['Accept'] = 'application/ld+json';
         }
 
         return $this->doRequest($method, $url, $data);
@@ -380,11 +412,11 @@ class Client
     private function renewToken()
     {
         $res = $this->doRequest('POST', 'login_check', [
-                   'form_params' => [
-                       '_username' => $this->username,
-                       '_password' => $this->password,
-                   ],
-               ]);
+            'form_params' => [
+                '_username' => $this->username,
+                '_password' => $this->password,
+            ],
+        ]);
         $data = $res->getStatusCode() === 200 ? json_decode($res->getBody()) : null;
         if (!$data) {
             throw new ClientException('Cannot renew token', 401);
