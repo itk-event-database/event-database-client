@@ -51,4 +51,9 @@ class Occurrence extends Item
     {
         return $this->event;
     }
+
+    public function getRoom()
+    {
+        return $this->room;
+    }
 }
