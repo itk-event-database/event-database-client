@@ -427,7 +427,7 @@ class Client
 
     private function getTokenFile()
     {
-        $filename = md5($this->url . '|' . $this->username . '|' . $this->password) . '.apitoken';
+        $filename = md5(php_sapi_name() . '|' . $this->url . '|' . $this->username . '|' . $this->password) . '.apitoken';
         return sys_get_temp_dir() . '/' . $filename;
     }
 
