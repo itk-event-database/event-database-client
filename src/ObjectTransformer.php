@@ -117,6 +117,18 @@ class ObjectTransformer
             }
 
         }
+
+        if(isset($data['room'])) {
+            $room = $data['room'];
+            unset($data['room']);
+
+            if(0 < count($data['occurrences'])) {
+                foreach ($data['occurrences'] as &$occurrence) {
+                    $occurrence['room'] = $room;
+                }
+            }
+
+        }
     }
 
     protected function setDefaults(array &$data, array $defaults)
