@@ -62,6 +62,11 @@ class ObjectTransformer
                             $data[$key] = $this->convertValue($value, $key);
                         }
                     }
+                } elseif (isset($spec['join']) && is_array($spec['join'])) {
+                    $delimiter = isset($spec['delimiter']) ? $spec['delimiter'] : '';
+                    $data[$key] = join($delimiter, array_map(function ($token) use ($item) {
+                        return strpos($token, '@') === 0 ? $this->getValue($item, substr($token, 1)) : $token;
+                    }, $spec['join']));
                 }
             }
         }
