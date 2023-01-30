@@ -192,6 +192,4 @@ class Event extends Item
     {
         return $this->get('createdBy');
     }
-
-
 }
