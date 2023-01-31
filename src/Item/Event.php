@@ -150,7 +150,17 @@ class Event extends Item
      */
     public function getImage()
     {
-        return $this->get('image');
+      return $this->get('image');
+    }
+
+    /**
+     * A list of images in different sizes.
+     *
+     * @return array|mixed|null
+     */
+    public function getImages()
+    {
+      return $this->get('images');
     }
 
     /**
