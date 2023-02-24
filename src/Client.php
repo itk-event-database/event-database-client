@@ -8,7 +8,8 @@ use Itk\EventDatabaseClient\Exception\ClientException;
 use Itk\EventDatabaseClient\Item\Event;
 use Itk\EventDatabaseClient\Item\Occurrence;
 use Itk\EventDatabaseClient\Item\Place;
-use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Token\Parser;
+use Lcobucci\JWT\Encoding\JoseEncoder;
 
 class Client
 {
@@ -453,10 +454,8 @@ class Client
             $renew = true;
         } else {
             try {
-                $token = (new Parser())->parse((string)$this->token);
-                $expirationTime = new \DateTime();
-                $timestamp = $token->getClaim('exp');
-                $expirationTime->setTimestamp($timestamp);
+                $token = (new Parser(new JoseEncoder()))->parse((string)$this->token);
+                $expirationTime = $token->claims()->get('exp');
                 $renew = $expirationTime < new \DateTime();
             } catch (\Exception $e) {
                 $renew = true;
