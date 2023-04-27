@@ -192,4 +192,14 @@ class Event extends Item
     {
         return $this->get('createdBy');
     }
+
+    /**
+     * The partner organizers.
+     *
+     * @return array|mixed|null
+     */
+    public function getPartnerOrganizers()
+    {
+      return $this->get('partnerOrganizers');
+    }
 }
