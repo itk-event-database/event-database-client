@@ -43,7 +43,8 @@ abstract class Item
     /**
      * Get a value from the item data.
      *
-     * @param null $key
+     * @param ?string $key
+     *   The item key.
      * @return array|mixed|null
      */
     public function get($key = null)
