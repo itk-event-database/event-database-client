@@ -24,7 +24,7 @@ class Client
      */
     public function __construct($url, $apiKey)
     {
-        $this->url = rtrim($url, '/') . 'Client.php/';
+        $this->url = rtrim($url, '/') . '/';
         $this->apiKey = $apiKey;
     }
 
