@@ -10,8 +10,8 @@ abstract class Item
     {
         $this->data = $data;
 
-        $this->data['id'] = $this->data['@id'];
-        if (preg_match('/(\d+)$/', $this->data['@id'], $matches)) {
+        $this->data['id'] = $this->data['entityId'];
+        if (preg_match('/(\d+)$/', $this->data['entityId'], $matches)) {
             $this->data['itemId'] = $matches[1];
         }
     }
@@ -43,7 +43,8 @@ abstract class Item
     /**
      * Get a value from the item data.
      *
-     * @param null $key
+     * @param ?string $key
+     *   The item key.
      * @return array|mixed|null
      */
     public function get($key = null)

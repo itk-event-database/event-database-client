@@ -30,7 +30,7 @@ class Event extends Item
      */
     public function getName()
     {
-        return $this->get('name');
+        return $this->get('title');
     }
 
     /**
@@ -70,7 +70,7 @@ class Event extends Item
      */
     public function getUpdatedAt()
     {
-        return $this->get('UpdatedAt');
+        return $this->get('updated');
     }
 
     /**
@@ -90,7 +90,7 @@ class Event extends Item
      */
     public function getTicketPurchaseUrl()
     {
-        return $this->get('ticketPurchaseUrl');
+        return $this->get('ticketUrl');
     }
 
     /**
@@ -160,7 +160,7 @@ class Event extends Item
      */
     public function getImages()
     {
-      return $this->get('images');
+      return $this->get('imageUrls');
     }
 
     /**
@@ -194,12 +194,12 @@ class Event extends Item
     }
 
     /**
-     * The partner organizers.
+     * The partners.
      *
      * @return array|mixed|null
      */
-    public function getPartnerOrganizers()
+    public function getPartners()
     {
-      return $this->get('partnerOrganizers');
+      return $this->get('partners');
     }
 }

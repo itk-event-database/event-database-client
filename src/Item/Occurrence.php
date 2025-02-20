@@ -21,9 +21,9 @@ class Occurrence extends Item
 
     public function __toString()
     {
-        $s = $this->getStartDate();
+        $s = $this->getStart();
         $s .= '–';
-        $s .= $this->getEndDate() ?: '';
+        $s .= $this->getEnd() ?: '';
         return $s;
     }
 
@@ -32,14 +32,19 @@ class Occurrence extends Item
         return $this->get('ticketPriceRange');
     }
 
-    public function getStartDate()
+    public function getStart()
     {
-        return $this->get('startDate');
+        return $this->get('start');
     }
 
-    public function getEndDate()
+    public function getEnd()
     {
-        return $this->get('endDate');
+        return $this->get('end');
+    }
+
+    public function getRoom()
+    {
+      return $this->get('room');
     }
 
     public function getPlace()
@@ -50,10 +55,5 @@ class Occurrence extends Item
     public function getEvent()
     {
         return $this->event;
-    }
-
-    public function getRoom()
-    {
-        return $this->room;
     }
 }
