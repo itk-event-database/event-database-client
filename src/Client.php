@@ -50,17 +50,18 @@ class Client
   /**
    * Get all events by an optional query presented as string.
    * 
-   * @param string|NULL $queryString
+   * @param string|NULL $path
+   *   A path that may contain a query.
    *
    * @return \Itk\EventDatabaseClient\Collection
    */
-    public function getEventsFromString(string $queryString = null)
+    public function getEventsFromString(string $path = null)
     {
-      $res = $this->request('GET', $queryString);
-      $json = json_decode($res->getBody(), true);
-      $collection = new Collection($json, Event::class);
+        $res = $this->request('GET', $path);
+        $json = json_decode($res->getBody(), true);
+        $collection = new Collection($json, Event::class);
 
-      return $collection;
+        return $collection;
     }
 
     /**
@@ -384,14 +385,14 @@ class Client
     private function getUrl($url, array $query = null)
     {
         if ($query) {
-          foreach ($query as $key => $value) {
-            if (is_array($value)) {
-              $query[$key] = implode(',', $value);
+            foreach ($query as $key => $value) {
+              if (is_array($value)) {
+                  $query[$key] = implode(',', $value);
+              }
+              if (is_bool($value)) {
+                  $query[$key] = ($value) ? 'true' : 'false';
+              }
             }
-            if (is_bool($value)) {
-              $query[$key] = ($value) ? 'true' : 'false';
-            }
-          }
             $url .= '?' . http_build_query($query);
         }
         
