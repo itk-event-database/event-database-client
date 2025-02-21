@@ -14,22 +14,18 @@ use Lcobucci\JWT\Encoding\JoseEncoder;
 class Client
 {
     protected $url;
-    protected $username;
-    protected $password;
-    protected $token;
+    protected $apiKey;
 
     /**
      * Client constructor.
      *
      * @param $url The API url.
-     * @param $username The API username.
-     * @param $password The API password.
+     * @param $apiKey The API apikey.
      */
-    public function __construct($url, $username, $password)
+    public function __construct($url, $apiKey)
     {
         $this->url = rtrim($url, '/') . '/';
-        $this->username = $username;
-        $this->password = $password;
+        $this->apiKey = $apiKey;
     }
 
     /**
@@ -45,6 +41,23 @@ class Client
     {
         $url = $this->getUrl('events', $query);
         $res = $this->request('GET', $url);
+        $json = json_decode($res->getBody(), true);
+        $collection = new Collection($json, Event::class);
+
+        return $collection;
+    }
+
+  /**
+   * Get all events by an optional query presented as string.
+   * 
+   * @param string|NULL $path
+   *   A path that may contain a query.
+   *
+   * @return \Itk\EventDatabaseClient\Collection
+   */
+    public function getEventsFromString(string $path = null)
+    {
+        $res = $this->request('GET', $path);
         $json = json_decode($res->getBody(), true);
         $collection = new Collection($json, Event::class);
 
@@ -372,21 +385,25 @@ class Client
     private function getUrl($url, array $query = null)
     {
         if ($query) {
+            foreach ($query as $key => $value) {
+              if (is_array($value)) {
+                  $query[$key] = implode(',', $value);
+              }
+              if (is_bool($value)) {
+                  $query[$key] = ($value) ? 'true' : 'false';
+              }
+            }
             $url .= '?' . http_build_query($query);
         }
-
+        
         return $url;
     }
 
     private function request($method, $url, array $data = [])
     {
-        $this->checkToken();
-
-        if ($this->token) {
-            $data['headers'] = [
-                'Authorization' => 'Bearer ' . $this->token,
-            ];
-        }
+        $data['headers'] = [
+          'X-Api-Key' => $this->apiKey,
+        ];
 
         if($method === 'POST' || $method === 'PUT') {
             $data['headers']['Content-Type'] = 'application/ld+json';
@@ -410,60 +427,4 @@ class Client
         }
     }
 
-    private function renewToken()
-    {
-        $res = $this->doRequest('POST', 'login_check', [
-            'form_params' => [
-                '_username' => $this->username,
-                '_password' => $this->password,
-            ],
-        ]);
-        $data = $res->getStatusCode() === 200 ? json_decode($res->getBody()) : null;
-        if (!$data) {
-            throw new ClientException('Cannot renew token', 401);
-        }
-        $this->token = $data->token;
-        $this->writeToken();
-    }
-
-    private function getTokenFile()
-    {
-        $filename = md5(php_sapi_name() . '|' . $this->url . '|' . $this->username . '|' . $this->password) . '.apitoken';
-        return sys_get_temp_dir() . '/' . $filename;
-    }
-
-    private function writeToken()
-    {
-        file_put_contents($this->getTokenFile(), $this->token);
-    }
-
-    private function readToken()
-    {
-        $this->token = file_exists($this->getTokenFile()) ? file_get_contents($this->getTokenFile()) : null;
-    }
-
-    private function checkToken()
-    {
-        if (!$this->username) {
-            $this->token = null;
-            return;
-        }
-        $renew = false;
-        $this->readToken();
-        if (!$this->token) {
-            $renew = true;
-        } else {
-            try {
-                $token = (new Parser(new JoseEncoder()))->parse((string)$this->token);
-                $expirationTime = $token->claims()->get('exp');
-                $renew = $expirationTime < new \DateTime();
-            } catch (\Exception $e) {
-                $renew = true;
-            }
-        }
-
-        if ($renew) {
-            $this->renewToken();
-        }
-    }
 }

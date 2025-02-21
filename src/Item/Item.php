@@ -10,8 +10,9 @@ abstract class Item
     {
         $this->data = $data;
 
-        $this->data['id'] = $this->data['@id'];
-        if (preg_match('/(\d+)$/', $this->data['@id'], $matches)) {
+        $this->data['id'] = $this->data['entityId'];
+        // If the ID ends with an integer, use the integer as the ID.
+        if (preg_match('/(\d+)$/', $this->data['entityId'], $matches)) {
             $this->data['itemId'] = $matches[1];
         }
     }
